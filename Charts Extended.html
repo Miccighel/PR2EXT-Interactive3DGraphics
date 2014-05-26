@@ -120,7 +120,10 @@
                 
                 // This call loads the hightlight feature for the chart
                 loadHighlight();
-                
+                /* This call changes the color set and redraw the chart
+                If there aren't changes on the color set, the chart is shown with the default colors.*/
+                loadChartColor();
+
                 // As soon as the first chart is made, the color set button is shown                
                 $(colorSetSelector).show();
                 
@@ -131,11 +134,8 @@
                         $(additionalOptionsSelector).show();
                         $(resetSelector).show();
                         // The scene is cleared
-                        scene = new THREE.Scene();  
-                        // This call changes the color set and redraw the pie chart
-                        loadChartColor();
-                        // If there aren't changes on the color set, the pie chart is shown with the default colors.
-                        showPieChart();                          
+                        scene = new THREE.Scene();
+                        showPieChart();
                         camera.position.z=25;   
                         camera.position.y=23; 
                         camera.position.x=10;                     
@@ -147,10 +147,7 @@
                         $(resetSelector).show();
 						// The scene is cleared						
                         scene = new THREE.Scene();
-						// This call changes the color set and redraw the bar chart
-                        loadChartColor();
-                        // If there aren't changes on the color set, the bar chart is shown with the default colors.
-                        showBarChart();                       
+                        showBarChart();
                         camera.position.z=25;   
                         camera.position.y=23; 
                         camera.position.x=10;                       
@@ -162,10 +159,7 @@
                         $(resetSelector).show();
 						// The scene is cleared
 						scene = new THREE.Scene();
-						// This call changes the color set and redraw the area chart
-                        loadChartColor();
-						// If there aren't changes on the color set, the area chart is shown with the default colors.             
-                        showAreaChart();                           
+                        showAreaChart();
                         camera.position.z=25;   
                         camera.position.y=23; 
                         camera.position.x=10;
