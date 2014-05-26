@@ -35,7 +35,7 @@
 			document.body.appendChild( renderer.domElement ); 
             controls = new THREE.OrbitAndPanControls( camera, renderer.domElement );
             controls.addEventListener( 'change', render );
-            window.addEventListener( 'resize', onWindowResize, false );               
+            window.addEventListener( 'resize', onWindowResize, false );
             
             /* GUI SETUP */
             
@@ -45,7 +45,7 @@
                 Columns : 6,
                 Max_Value : 20,
                 Chart : 'Main Page',
-                Color_Set: 'Set 1',
+                Visual_Set: 'Color Set 1',
                 Reset_Highlight:function(){},
                 Row_To_Show: 1
             } 
@@ -62,7 +62,7 @@
             // Panel with options to control the attributes of the graphs
             var chartFolder = gui.addFolder('Chart');
             var chart = chartFolder.add(params, 'Chart',['Main Page','Pie Chart','Bar Chart','Area Chart']);
-            var colorSet = chartFolder.add(params, 'Color_Set',['Set 1','Set 2']);
+            var visualSet = chartFolder.add(params, 'Visual_Set',['Color Set 1','Color Set 2', 'Material Set 1','Material Set 2']);
             var reset = chartFolder.add(params, 'Reset_Highlight');
             chartFolder.open();    
             
@@ -78,8 +78,8 @@
             });            
             
             // The first time, the color set menu isn't shown
-            var colorSetSelector = 'div.dg li.folder:nth-child(2) li:nth-child(3)';
-            $(colorSetSelector).hide();
+            var visualSetSelector = 'div.dg li.folder:nth-child(2) li:nth-child(3)';
+            $(visualSetSelector).hide();
             
             // We use JQuery to handle GUI controls 
             
@@ -98,15 +98,15 @@
                         
             /* COLOR SETUP */ 
             
-            // Set up of the color sets that can be selected by the user   
-            var colors = new Array();
+            // Set up of the visual sets that can be selected by the user
+            var visuals = new Array();
             // A default color set is provided
-            colors.push(0x00ff00);
-            colors.push(0xffff00);
-            colors.push(0xFF0049);
-            colors.push(0x0E28E8);
-            colors.push(0x4B0082);
-            colors.push(0x30D5C8);              
+            visuals.push(0x00ff00);
+            visuals.push(0xffff00);
+            visuals.push(0xFF0049);
+            visuals.push(0x0E28E8);
+            visuals.push(0x4B0082);
+            visuals.push(0x30D5C8);
             
              /* DATA SETUP */
             
@@ -122,10 +122,10 @@
                 loadHighlight();
                 /* This call changes the color set and redraw the chart
                 If there aren't changes on the color set, the chart is shown with the default colors.*/
-                loadChartColor();
+                loadChartMaterial();
 
                 // As soon as the first chart is made, the color set button is shown                
-                $(colorSetSelector).show();
+                $(visualSetSelector).show();
                 
                 switch(params.Chart){
                         
@@ -187,8 +187,8 @@
                         break;                        
                     }                    
                 });                
-            }); 
-       
+            });
+
             animate();
 			render();  
             
