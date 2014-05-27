@@ -18,6 +18,7 @@
 		<script src="lib/JQuery.min.js"></script>
         <!-- This file contains our custom functions for the project. -->
         <script src="lib/Functions.js"></script>
+        <script src="lib/Tween.min.js"></script>
         <script src="lib/Dat.gui.js"></script>
         <script src="lib/helvetiker_regular.typeface.js"></script>
 	</head>
@@ -36,7 +37,7 @@
             controls = new THREE.OrbitAndPanControls( camera, renderer.domElement );
             controls.addEventListener( 'change', render );
             window.addEventListener( 'resize', onWindowResize, false );
-            
+
             /* GUI SETUP */
             
             // Setup of the GUI to control the properties of the random table and graphs            
@@ -112,7 +113,7 @@
             
             // Data matrix is loaded with default data
             data = new Array();
-            data = generateData(params.Rows,params.Columns,1,params.Max_Value);            
+            data = generateData(params.Rows,params.Columns,1,params.Max_Value);
         
             /* CHART SETUP */             
             
@@ -190,7 +191,7 @@
             });
 
             animate();
-			render();  
+			render();
             
 		</script>
 	</body>
