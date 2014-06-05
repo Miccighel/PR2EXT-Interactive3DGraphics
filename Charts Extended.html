@@ -131,6 +131,8 @@
                 If there aren't changes on the color set, the chart is shown with the default colors.*/
                 loadChartMaterial();
 
+
+
                 // As soon as the first chart is made, the color set button is shown                
                 $(visualSetSelector).show();
                 
@@ -179,7 +181,8 @@
                         $(additionalOptionsSelector).hide();					
                      break;
                 }
-                
+
+
                 // Management of the reset button; it shows again the same chart
                 reset.onChange(function (value){
                     switch(params.Chart){
@@ -196,8 +199,8 @@
                 });                
             });
 
-            render();
             animate();
+            render();
 
 		</script>
 	</body>
