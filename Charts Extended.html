@@ -1,6 +1,6 @@
 <html>
 	<head>
-		<title>Interactive 3D Graphics - Project 1 - 3D Charts</title>
+		<title>Interactive 3D Graphics - Project 2 - 3D Charts Extended</title>
 		<style>		
 		body {
 			font-family: Monospace;
@@ -25,69 +25,104 @@
 	<body>
 
     <script type="text/x-glsl" id="vertex">
+		uniform vec3 pointLightPosition1;
+		uniform vec3 pointLightPosition2;
+		uniform vec3 pointLightPosition3;
+		uniform vec3 lightPower;
+
+		uniform float s;
+		uniform vec3 kS;
+		uniform vec3 ambient;
+
+		attribute float kDr;
+		attribute float kDg;
+		attribute float kDb;
+
+		varying vec3 mvPosition;
 		varying vec3 transformedNormal;
-		varying vec3 pointPosition;
-		varying vec3 lightVector;
-		uniform vec3 pointLightPosition;
+		varying vec3 lVector1;
+		varying vec3 lVector2;
+		varying vec3 lVector3;
+        varying vec3 outRadiance;
 
-		void main()
-		{
+		const float PI = 3.14159;
+
+		void main() {
+
+            vec4 mvPosition, lPosition1, lPosition2, lPosition3;
+            vec3 transformedNormal, vVector, lVector1, beta1, hVector1, lVector2, beta2, hVector2, lVector3, beta3, hVector3;
+            float hDotn1, pointLightWeighting1, hDotn2, pointLightWeighting2, hDotn3, pointLightWeighting3;
+
+			gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
+			mvPosition = modelViewMatrix * vec4( position, 1.0 );
 			transformedNormal = normalMatrix * normal;
-			pointPosition = (modelViewMatrix * vec4( position, 1.0 )).xyz;
-			vec4 lPosition = viewMatrix * vec4( pointLightPosition, 1.0 );
-			lightVector = lPosition.xyz - pointPosition;
-			gl_Position = projectionMatrix * vec4(pointPosition,1.0);
+
+			lPosition1 = viewMatrix * vec4( pointLightPosition1, 1.0 );
+			lVector1 = lPosition1.xyz - mvPosition.xyz;
+			beta1 = lightPower / ( 4.0  * PI * pow( length(lVector1),2.0) );
+			lVector1 = normalize(lVector1);
+			vVector = normalize( -mvPosition.xyz );
+			hVector1 = normalize( lVector1 + vVector);
+			hDotn1 = max(dot( transformedNormal, hVector1 ),0.0);
+			pointLightWeighting1 = dot( transformedNormal, lVector1);
+
+			lPosition2 = viewMatrix * vec4( pointLightPosition2, 1.0 );
+			lVector2 = lPosition2.xyz - mvPosition.xyz;
+			beta2 = lightPower / ( 4.0  * PI * pow( length(lVector2),2.0) );
+			lVector2 = normalize(lVector2);
+			vVector = normalize( -mvPosition.xyz );
+			hVector2 = normalize( lVector2 + vVector);
+			hDotn2 = max(dot( transformedNormal, hVector2 ),0.0);
+			pointLightWeighting2 = dot( transformedNormal, lVector2);
+
+			lPosition3 = viewMatrix * vec4( pointLightPosition3, 1.0 );
+			lVector3 = lPosition3.xyz - mvPosition.xyz;
+			beta3 = lightPower / ( 4.0  * PI * pow( length(lVector3),2.0) );
+			lVector3 = normalize(lVector3);
+			vVector = normalize( -mvPosition.xyz );
+			hVector3 = normalize( lVector3 + vVector);
+			hDotn3 = max(dot( transformedNormal, hVector3 ),0.0);
+			pointLightWeighting3 = dot( transformedNormal, lVector3);
+
+			outRadiance = ambient*vec3(kDr,kDg,kDb) +
+			            ((beta1) * (pointLightWeighting1) * pow(hDotn1,s) * kS) +
+			            ((beta2) * (pointLightWeighting2) * pow(hDotn2,s) *kS) +
+			            ((beta3) * (pointLightWeighting3) * pow(hDotn3,s) *kS);
 		}
-		</script>
+    </script>
 
-    <script type="text/x-glsl" id="ct-fragment">
-			uniform vec3 lightPower;
-			uniform vec3 ambient;
-			uniform vec3 Kd; // surface diffuse color
-			uniform vec3 Ks; // surface specular color: equal to R_F(0)
-			uniform float m; // material roughness (average slope of microfacets)
-			uniform float s; // percentage of incoming light which is specularly reflected
+    <script type="text/x-glsl" id="fragment">
 
+            uniform vec3 kS;
+
+			varying vec3 mvPosition;
 			varying vec3 transformedNormal;
-			varying vec3 pointPosition;
-			varying vec3 lightVector;
+		    varying vec3 lVector1;
+		    varying vec3 lVector2;
+		    varying vec3 lVector3;
+		    varying vec3 outRadiance;
 
-			#define PI 3.14159265
-
-			// compute the geometry term
-			float G(float NdotH, float NdotV, float VdotH, float NdotL)
-			{
-				float G1 = 2.0 * NdotH * NdotV / VdotH;
-				float G2 = 2.0 * NdotH * NdotL / VdotH;
-				return min( 1.0, min( G1, G2 ));
-			}
-
-			// compute Fresnel reflection term
 			vec3 R_F(float VdotH) {
-				return Ks + (1.0 - Ks)*pow(1.0-VdotH, 5.0);
+				return kS + (1.0 - kS)*pow(1.0-VdotH, 5.0);
 			}
 
-			// compute the normal distribution function, based on Beckmann distribution
-			float Beckmann(float NdotH){
-				float A = 1.0 / (pow(m,2.0)+pow(NdotH,4.0)*PI);
-				float B = exp( - pow( tan(acos(NdotH)) , 2.0) / pow(m,2.0));
-				return A*B;
-			}
+			void main() {
 
-			void main()
-			{
-				vec3  n      		 	= normalize( transformedNormal );
-				vec3  v         		= normalize( -pointPosition );
-				vec3  l         		= normalize(  lightVector );
-				vec3  h          		= normalize( v+l );
-				float  NdotH    		= max(0.0, dot( n, h ));
-				float  VdotH     		= max(0.0, dot( v, h ));
-				float  NdotV 			= max(0.0, dot( n, v ));
-				float  NdotL 			= max(0.0, dot( n, l ));
-				// specular BRDF
-				vec3 Specular = (Beckmann(NdotH) * G(NdotH, NdotV, VdotH, NdotL) * R_F(VdotH)) / ( NdotL* NdotV);
-				vec3 beta = lightPower / ( 4.0  * PI * pow( length(lightVector),2.0) );
-				gl_FragColor = vec4(beta * NdotL * ((1.0-s)*Kd + s*Specular) + ambient*Kd, 1.0);
+			    vec3 n, v, l1, l2, l3, h1, h2, h3;
+			    float VdotH1, VdotH2, VdotH3;
+
+			    n  = normalize( transformedNormal );
+				v  = normalize( -mvPosition );
+				l1  = normalize(  lVector1 );
+				l2  = normalize(  lVector2 );
+				l3  = normalize(  lVector3 );
+				h1  = normalize( v+l1 );
+				h2  = normalize( v+l2 );
+				h3  = normalize( v+l3 );
+                VdotH1 = max(0.0, dot( v, h1 ));
+                VdotH2 = max(0.0, dot( v, h2 ));
+                VdotH3 = max(0.0, dot( v, h3 ));
+				gl_FragColor = vec4(outRadiance * R_F(VdotH1+VdotH2+VdotH3), 1.0);
 			}
 		</script>
 
@@ -170,12 +205,12 @@
             // Set up of the visual sets that can be selected by the user
             var visuals = new Array();
             // A default color set is provided
-            visuals.push(0x00ff00);
-            visuals.push(0xffff00);
-            visuals.push(0xFF0049);
-            visuals.push(0x0E28E8);
-            visuals.push(0x4B0082);
-            visuals.push(0x30D5C8);
+            visuals.push('#00ff00');
+            visuals.push('#ffff00');
+            visuals.push('#FF0049');
+            visuals.push('#0E28E8');
+            visuals.push('#4B0082');
+            visuals.push('#30D5C8');
 
             /* LIGHT SETUP */
 
@@ -183,11 +218,12 @@
             var spotLight2;
             var spotLight3;
 
-            /* UNIFORM SETUP */
+            /* SHADER DATA SETUP */
 
             var uniforms;
+            var attributes;
 
-            /* DATA SETUP */
+            /* CHART DATA SETUP */
             
             // Data matrix is loaded with default data
             data = new Array();
@@ -200,7 +236,7 @@
                 // This call loads the hightlight feature for the chart
                 loadHighlight();
                 /* This call changes the color set and redraw the chart
-                If there aren't changes on the color set, the chart is shown with the default colors.*/
+                If there aren't changes on the color set, the chart is shown with the default material.*/
                 loadChartMaterial();
 
                 // As soon as the first chart is made, the color set button is shown                
