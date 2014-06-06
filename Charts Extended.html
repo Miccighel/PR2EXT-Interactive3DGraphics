@@ -1,17 +1,17 @@
 <html>
 	<head>
 		<title>Interactive 3D Graphics - Project 2 - 3D Charts Extended</title>
-		<style>		
+		<style>
 		body {
 			font-family: Monospace;
 			background-color: #000000;
 			margin: 0px;
 			overflow: hidden;
-		}		
-		canvas { 
-			width: 100%; 
+		}
+		canvas {
+			width: 100%;
 			height: 100%;
-		}	
+		}
 	</style>
 		<script src="lib/Three.min.js"></script>
 		<script src="lib/OrbitAndPanControls.js"></script>
@@ -24,25 +24,37 @@
 	</head>
 	<body>
 
+    <!-- BASE VERTEX SHADER FOR MATERIAL SET 2-->
+
     <script type="text/x-glsl" id="vertex">
 		uniform vec3 pointLightPosition1;
 		uniform vec3 pointLightPosition2;
 		uniform vec3 pointLightPosition3;
 		uniform vec3 lightPower;
 
+        // Percentage of incoming light which is specularly reflected
 		uniform float s;
+		// Specular color of the surface
 		uniform vec3 kS;
+		// Ambiental term
 		uniform vec3 ambient;
 
+        // Red component of the diffuse color
 		attribute float kDr;
+		// Green component of the diffuse color
 		attribute float kDg;
+		// Blue component of the diffuse color
 		attribute float kDb;
 
+        // World space position of the point
 		varying vec3 mvPosition;
+		// Corrected normal (because of interpolation)
 		varying vec3 transformedNormal;
+		// Light vectors
 		varying vec3 lVector1;
 		varying vec3 lVector2;
 		varying vec3 lVector3;
+		// Color of the fragment
         varying vec3 outRadiance;
 
 		const float PI = 3.14159;
@@ -55,16 +67,29 @@
 
 			gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
 			mvPosition = modelViewMatrix * vec4( position, 1.0 );
+			// Correction of the interpolated normal
 			transformedNormal = normalMatrix * normal;
 
+            // SPOTLIGHT 1
+
+            // Light position in world space
 			lPosition1 = viewMatrix * vec4( pointLightPosition1, 1.0 );
+			// Direction of the light
 			lVector1 = lPosition1.xyz - mvPosition.xyz;
+			// Biradiance between the vertex and the light
 			beta1 = lightPower / ( 4.0  * PI * pow( length(lVector1),2.0) );
+			// Normalized directional vector
 			lVector1 = normalize(lVector1);
+			// Direction of outgoing radiance
 			vVector = normalize( -mvPosition.xyz );
+			// Normal h (which is the normal we search for reflection)
 			hVector1 = normalize( lVector1 + vVector);
+			// Angle between the light direction in the point and the normal of the microfacet
 			hDotn1 = max(dot( transformedNormal, hVector1 ),0.0);
+			// Angle bewteen the normal in the surface and the light direction
 			pointLightWeighting1 = dot( transformedNormal, lVector1);
+
+			// SPOTLIGHT 2
 
 			lPosition2 = viewMatrix * vec4( pointLightPosition2, 1.0 );
 			lVector2 = lPosition2.xyz - mvPosition.xyz;
@@ -75,6 +100,8 @@
 			hDotn2 = max(dot( transformedNormal, hVector2 ),0.0);
 			pointLightWeighting2 = dot( transformedNormal, lVector2);
 
+			// SPOTLIGHT 3
+
 			lPosition3 = viewMatrix * vec4( pointLightPosition3, 1.0 );
 			lVector3 = lPosition3.xyz - mvPosition.xyz;
 			beta3 = lightPower / ( 4.0  * PI * pow( length(lVector3),2.0) );
@@ -84,12 +111,16 @@
 			hDotn3 = max(dot( transformedNormal, hVector3 ),0.0);
 			pointLightWeighting3 = dot( transformedNormal, lVector3);
 
+			// OUTRADIANCE FOR THE THREE LIGHTS
+
 			outRadiance = ambient*vec3(kDr,kDg,kDb) +
 			            ((beta1) * (pointLightWeighting1) * pow(hDotn1,s) * kS) +
 			            ((beta2) * (pointLightWeighting2) * pow(hDotn2,s) *kS) +
 			            ((beta3) * (pointLightWeighting3) * pow(hDotn3,s) *kS);
 		}
     </script>
+
+    <!-- BASE FRAGMENT SHADER FOR MATERIAL SET 2-->
 
     <script type="text/x-glsl" id="fragment">
 
@@ -102,6 +133,7 @@
 		    varying vec3 lVector3;
 		    varying vec3 outRadiance;
 
+            // FRESNEL TERM
 			vec3 R_F(float VdotH) {
 				return kS + (1.0 - kS)*pow(1.0-VdotH, 5.0);
 			}
@@ -126,24 +158,51 @@
 			}
 		</script>
 
+    <!-- HIGHLIGHT VERTEX SHADER FOR MATERIAL SET 2-->
+
+    <script type="text/x-glsl" id="vertex-highlight">
+
+		attribute float kDr;
+		attribute float kDg;
+		attribute float kDb;
+
+        varying vec3 outRadiance;
+
+		void main() {
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
+            // The vertex color is the diffuse color without any light considered
+			outRadiance = vec3(kDr,kDg,kDb);
+		}
+    </script>
+
+    <!-- HIGHLIGHT FRAGMENT SHADER FOR MATERIAL SET 2-->
+
+    <script type="text/x-glsl" id="fragment-highlight">
+		    varying vec3 outRadiance;
+
+			void main() {
+				gl_FragColor = vec4(outRadiance, 1.0);
+			}
+    </script>
+
 		<script>
-            
+
             /* SCENE SETUP */
-            
+
             // Setup of the scene, including instructions to move and zoom in/out the camera around the objects of the scene
             var scene = new THREE.Scene();
-			var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );            
-			var renderer = new THREE.WebGLRenderer({antialias:true});            
+			var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+			var renderer = new THREE.WebGLRenderer({antialias:true});
 			renderer.setSize( window.innerWidth, window.innerHeight );
 			renderer.setClearColor( 0xf0f0f0 );
-			document.body.appendChild( renderer.domElement ); 
+			document.body.appendChild( renderer.domElement );
             controls = new THREE.OrbitAndPanControls( camera, renderer.domElement );
             controls.addEventListener( 'change', render );
             window.addEventListener( 'resize', onWindowResize, false );
 
             /* GUI SETUP */
-            
-            // Setup of the GUI to control the properties of the random table and graphs            
+
+            // Setup of the GUI to control the properties of the random table and graphs
             var params = {
                 Rows : 6,
                 Columns : 6,
@@ -152,59 +211,59 @@
                 Visual_Set: 'Color Set 1',
                 Reset_Highlight:function(){},
                 Row_To_Show: 1
-            } 
-            
+            }
+
             var gui = new dat.GUI();
-            
+
             // Panel with options to control the attributes of the table
             var tableFolder = gui.addFolder('Table');
             var rowsNumber = tableFolder.add(params, 'Rows').min(1).max(6).step(1);
-            var columnsNumber = tableFolder.add(params, 'Columns').min(1).max(6).step(1);            
+            var columnsNumber = tableFolder.add(params, 'Columns').min(1).max(6).step(1);
             var maxValue = tableFolder.add(params, 'Max_Value').min(2).max(20).step(1);
             tableFolder.open();
-            
+
             // Panel with options to control the attributes of the graphs
             var chartFolder = gui.addFolder('Chart');
             var chart = chartFolder.add(params, 'Chart',['Main Page','Pie Chart','Bar Chart','Area Chart']);
             var visualSet = chartFolder.add(params, 'Visual_Set',['Color Set 1','Color Set 2', 'Material Set 1','Material Set 2']);
             var reset = chartFolder.add(params, 'Reset_Highlight');
-            chartFolder.open();    
-            
-            /* Additional option is a panel of options to use with pie chart; it allows to the user 
+            chartFolder.open();
+
+            /* Additional option is a panel of options to use with pie chart; it allows to the user
             to select the row to show in pie chart*/
-            var additionalOptions = gui.addFolder("Additional Options");            
-            var rowToShow = additionalOptions.add(params, 'Row_To_Show').min(1).max(params.Rows).step(1); 
-                         
-            /* Every time that the number of random rows is changed, 
+            var additionalOptions = gui.addFolder("Additional Options");
+            var rowToShow = additionalOptions.add(params, 'Row_To_Show').min(1).max(params.Rows).step(1);
+
+            /* Every time that the number of random rows is changed,
             the new max value for "row to show" option is updated */
             rowsNumber.onChange(function(value) {
-                rowToShow.max(params.Rows);    
-            });            
-            
+                rowToShow.max(params.Rows);
+            });
+
             // The first time, the color set menu isn't shown
             var visualSetSelector = 'div.dg li.folder:nth-child(2) li:nth-child(3)';
             $(visualSetSelector).hide();
-            
-            // We use JQuery to handle GUI controls 
-            
-            // If main page is selected, the reset button isn't shown 
+
+            // We use JQuery to handle GUI controls
+
+            // If main page is selected, the reset button isn't shown
             var resetSelector = 'div.dg li.folder:nth-child(2) li:nth-child(4)';
             $(resetSelector).hide();
-            
+
             // If pie chart isn't selected, the panel with additional options isn't shown
             var additionalOptionsSelector = 'div.dg li.folder:nth-child(3)';
             $(additionalOptionsSelector).hide();
-            additionalOptions.open();            
-               
+            additionalOptions.open();
+
             /* INTRO TEXT SETUP */
-            
-            showIntroText();     
-                        
+
+            showIntroText();
+
             /* MATERIAL SETUP */
-            
+
             // Set up of the visual sets that can be selected by the user
             var visuals = new Array();
-            // A default color set is provided
+            // A default material set is provided
             visuals.push('#00ff00');
             visuals.push('#ffff00');
             visuals.push('#FF0049');
@@ -224,26 +283,26 @@
             var attributes;
 
             /* CHART DATA SETUP */
-            
+
             // Data matrix is loaded with default data
             data = new Array();
             data = generateData(params.Rows,params.Columns,1,params.Max_Value);
-        
-            /* CHART SETUP */             
-            
+
+            /* CHART SETUP */
+
             chart.onChange(function (value){
-                
+
                 // This call loads the hightlight feature for the chart
                 loadHighlight();
-                /* This call changes the color set and redraw the chart
-                If there aren't changes on the color set, the chart is shown with the default material.*/
+                /* This call changes the material set and redraw the chart
+                If there aren't changes on the material set, the chart is shown with the default material.*/
                 loadChartMaterial();
 
-                // As soon as the first chart is made, the color set button is shown                
+                // As soon as the first chart is made, the color set button is shown
                 $(visualSetSelector).show();
-                
+
                 switch(params.Chart){
-                        
+
                     case 'Pie Chart':
                         // The panel with the additional options for the pie chart is shown, the reset button isn't shown
                         $(additionalOptionsSelector).show();
@@ -251,23 +310,23 @@
                         // The scene is cleared
                         scene = new THREE.Scene();
                         showPieChart();
-                        camera.position.z=25;   
-                        camera.position.y=23; 
-                        camera.position.x=10;                     
+                        camera.position.z=25;
+                        camera.position.y=23;
+                        camera.position.x=10;
                     break;
-                        
+
                     case 'Bar Chart':
 						// The panel with the additional options for the pie chart is hidden, the reset button is shown
                         $(additionalOptionsSelector).hide();
                         $(resetSelector).show();
-						// The scene is cleared						
+						// The scene is cleared
                         scene = new THREE.Scene();
                         showBarChart();
-                        camera.position.z=25;   
-                        camera.position.y=23; 
-                        camera.position.x=10;                       
+                        camera.position.z=25;
+                        camera.position.y=23;
+                        camera.position.x=10;
                     break;
-                        
+
                     case 'Area Chart':
 						// The panel with the additional options for the pie chart is hidden, the reset button is shown
                         $(additionalOptionsSelector).hide();
@@ -275,16 +334,16 @@
 						// The scene is cleared
 						scene = new THREE.Scene();
                         showAreaChart();
-                        camera.position.z=25;   
-                        camera.position.y=23; 
+                        camera.position.z=25;
+                        camera.position.y=23;
                         camera.position.x=10;
-                    break;            
-                        
-                    case 'Main Page': 
+                    break;
+
+                    case 'Main Page':
                         $(resetSelector).hide();
                         showIntroText();
 						// The panel with the additional options for the pie chart is hidden
-                        $(additionalOptionsSelector).hide();					
+                        $(additionalOptionsSelector).hide();
                      break;
                 }
 
@@ -296,12 +355,12 @@
                         break;
                         case 'Bar Chart':
                             showBarChart();
-                        break;                            
+                        break;
                         case 'Area Chart':
                             showAreaChart();
-                        break;                        
-                    }                    
-                });                
+                        break;
+                    }
+                });
             });
 
             animate();
