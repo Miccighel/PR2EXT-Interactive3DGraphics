@@ -89,7 +89,7 @@
 			// Angle bewteen the normal in the surface and the light direction
 			pointLightWeighting1 = dot( transformedNormal, lVector1);
 
-			// SPOTLIGHT 2
+			// SPOTLIGHT 2 (the computations are the same as for the first light)
 
 			lPosition2 = viewMatrix * vec4( pointLightPosition2, 1.0 );
 			lVector2 = lPosition2.xyz - mvPosition.xyz;
@@ -111,7 +111,7 @@
 			hDotn3 = max(dot( transformedNormal, hVector3 ),0.0);
 			pointLightWeighting3 = dot( transformedNormal, lVector3);
 
-			// OUTRADIANCE FOR THE THREE LIGHTS
+			// OUTRADIANCE FOR THE THREE LIGHTS (we also take account of the ambiental term)
 
 			outRadiance = ambient*vec3(kDr,kDg,kDb) +
 			            ((beta1) * (pointLightWeighting1) * pow(hDotn1,s) * kS) +
@@ -154,6 +154,7 @@
                 VdotH1 = max(0.0, dot( v, h1 ));
                 VdotH2 = max(0.0, dot( v, h2 ));
                 VdotH3 = max(0.0, dot( v, h3 ));
+                // VdotHi terms are angles, so we evaluate the Fresnel term for the sum of those angles
 				gl_FragColor = vec4(outRadiance * R_F(VdotH1+VdotH2+VdotH3), 1.0);
 			}
 		</script>
