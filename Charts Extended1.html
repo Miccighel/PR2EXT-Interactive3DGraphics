@@ -47,23 +47,31 @@
 		attribute float kDb;
 
         // World space position of the point
-		varying vec3 mvPosition;
+		vec3 mvPosition;
 		// Corrected normal (because of interpolation)
-		varying vec3 transformedNormal;
+		vec3 transformedNormal;
 		// Light vectors
-		varying vec3 lVector1;
-		varying vec3 lVector2;
-		varying vec3 lVector3;
+		vec3 lVector1;
+		vec3 lVector2;
+		vec3 lVector3;
 		// Color of the fragment
         varying vec3 outRadiance;
 
 		const float PI = 3.14159;
+
+		// FRESNEL TERM
+		vec3 R_F(float VdotH) {
+			return kS + (1.0 - kS)*pow(1.0-VdotH, 5.0);
+		}
 
 		void main() {
 
             vec4 mvPosition, lPosition1, lPosition2, lPosition3;
             vec3 transformedNormal, vVector, beta1, hVector1, beta2, hVector2, beta3, hVector3;
             float hDotn1, pointLightWeighting1, hDotn2, pointLightWeighting2, hDotn3, pointLightWeighting3;
+
+            vec3 n, v, l1, l2, l3, h1, h2, h3;
+			float VdotH1, VdotH2, VdotH3;
 
 			gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
 			mvPosition = modelViewMatrix * vec4( position, 1.0 );
@@ -89,7 +97,7 @@
 			// Angle bewteen the normal in the surface and the light direction
 			pointLightWeighting1 = dot( transformedNormal, lVector1);
 
-			// SPOTLIGHT 2 (the computations are the same as for the first light)
+			// SPOTLIGHT 2
 
 			lPosition2 = viewMatrix * vec4( pointLightPosition2, 1.0 );
 			lVector2 = lPosition2.xyz - mvPosition.xyz;
@@ -111,12 +119,24 @@
 			hDotn3 = max(dot( transformedNormal, hVector3 ),0.0);
 			pointLightWeighting3 = dot( transformedNormal, lVector3);
 
-			// OUTRADIANCE FOR THE THREE LIGHTS (we also take account of the ambiental term)
+			n  = normalize( transformedNormal );
+		    v  = normalize( -mvPosition.xyz );
+			l1  = normalize(  lVector1 );
+			l2  = normalize(  lVector2 );
+			l3  = normalize(  lVector3 );
+			h1  = normalize( v+l1 );
+			h2  = normalize( v+l2 );
+			h3  = normalize( v+l3 );
+            VdotH1 = max(0.0, dot( v, h1 ));
+            VdotH2 = max(0.0, dot( v, h2 ));
+            VdotH3 = max(0.0, dot( v, h3 ));
 
-			outRadiance = ambient*vec3(kDr,kDg,kDb) +
-			            ((beta1) * (pointLightWeighting1) * pow(hDotn1,s) * kS) +
-			            ((beta2) * (pointLightWeighting2) * pow(hDotn2,s) *kS) +
-			            ((beta3) * (pointLightWeighting3) * pow(hDotn3,s) *kS);
+			// OUTRADIANCE FOR THE THREE LIGHTS
+
+			outRadiance = ambient * vec3(kDr,kDg,kDb) +
+			            ((beta1) * (pointLightWeighting1) * pow(hDotn1,s)* R_F(VdotH1) * kS) +
+			            ((beta2) * (pointLightWeighting2) * pow(hDotn2,s)* R_F(VdotH2) * kS) +
+			            ((beta3) * (pointLightWeighting3) * pow(hDotn3,s)* R_F(VdotH3) * kS);
 		}
     </script>
 
@@ -124,38 +144,10 @@
 
     <script type="text/x-glsl" id="fragment">
 
-            uniform vec3 kS;
-
-			varying vec3 mvPosition;
-			varying vec3 transformedNormal;
-		    varying vec3 lVector1;
-		    varying vec3 lVector2;
-		    varying vec3 lVector3;
 		    varying vec3 outRadiance;
 
-            // FRESNEL TERM
-			vec3 R_F(float VdotH) {
-				return kS + (1.0 - kS)*pow(1.0-VdotH, 5.0);
-			}
-
 			void main() {
-
-			    vec3 n, v, l1, l2, l3, h1, h2, h3;
-			    float VdotH1, VdotH2, VdotH3;
-
-			    n  = normalize( transformedNormal );
-				v  = normalize( -mvPosition );
-				l1  = normalize(  lVector1 );
-				l2  = normalize(  lVector2 );
-				l3  = normalize(  lVector3 );
-				h1  = normalize( v+l1 );
-				h2  = normalize( v+l2 );
-				h3  = normalize( v+l3 );
-                VdotH1 = max(0.0, dot( v, h1 ));
-                VdotH2 = max(0.0, dot( v, h2 ));
-                VdotH3 = max(0.0, dot( v, h3 ));
-                // VdotHi terms are angles, so we evaluate the Fresnel term for the sum of those angles
-				gl_FragColor = vec4(outRadiance * R_F(VdotH1+VdotH2+VdotH3), 1.0);
+				gl_FragColor = vec4(outRadiance, 1.0);
 			}
 		</script>
 
